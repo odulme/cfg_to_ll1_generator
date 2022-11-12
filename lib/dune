@@ -1,3 +1,6 @@
 (library
  (name topdown)
  (modules cfg sets))
+(env
+  (dev
+      (flags (:standard -w -27-39-33-32))))

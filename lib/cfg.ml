@@ -1,4 +1,4 @@
-open Sets;;
+open Sets
 
 type symbol =
   | T of string (* terminal symbol *)
@@ -73,6 +73,35 @@ let nepsilon x = x != Epsilon
 let rec filter p = function
   | [] -> []
   | h :: t -> if p h then h :: filter p t else filter p t
+
+let find_select (cfg : cfg) (prod : symbol * symbol list) =
+  let first_alpha =
+    match snd prod with 
+    | []->[]
+    | h :: _ -> (
+      match h with 
+      | T _ -> h :: []
+      | N _ -> first cfg h
+      | Epsilon -> h :: [] 
+      | _ -> []
+    )in
+let rec exit_epsilon (first_list : symbol list) : bool = 
+  match first_list with 
+  | [] -> false
+  | h :: t -> (
+    match h with 
+    | Epsilon -> true
+    | T _ -> exit_epsilon t
+    | _ -> false;
+  )  in
+if exit_epsilon first_alpha = false then first_alpha
+else let first_filter = filter nepsilon first_alpha in 
+  let follow_alpha = follow cfg (fst prod) in 
+  union first_filter (filter nepsilon follow_alpha)
+  
+
+let select (cfg : cfg) (prod : symbol * symbol list) : symbol list =
+  find_select cfg prod
 
 let cfg1 = (
   [N "E"; N "E'"; N "T"; N "T'"; N "F"],
