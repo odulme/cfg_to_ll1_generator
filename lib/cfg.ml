@@ -258,7 +258,7 @@ let get_lhs_rhs(cfg : cfg)(nonterminal : symbol) : (symbol * symbol list) list =
   let lst = factor_check prods nonterminal in 
   let lst_rhs = get_rhs lst nonterminal in
   let lst_lhs = get_lhs lst nonterminal in
-  let rhs_with_new = cat ([new_nont]) (lst_rhs)  in 
-  let lhs_with_new =  cat ([new_nont]) (lst_lhs) in 
+  let rhs_with_new = super_cat ([new_nont]) (lst_rhs)  in 
+  let lhs_with_new =  super_cat ([new_nont]) (lst_lhs) in 
   let new_prods = drop nonterminal prods prods in 
   union new_prods (union (illness_cat (new_nont) (rhs_with_new) ) (illness_cat (nonterminal) (lhs_with_new)))
