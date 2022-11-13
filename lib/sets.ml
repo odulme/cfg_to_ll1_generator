@@ -58,3 +58,8 @@ let rec cat x a =
   | [] -> []
   | h::t -> (x,h)::(cat x t)
 
+let rec elem_find a =
+  match a with
+  | h :: t -> (List.mem h t) || elem_find t
+  | [] -> false 
+
