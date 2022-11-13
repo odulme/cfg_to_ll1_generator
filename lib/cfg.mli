@@ -16,3 +16,5 @@ val left_factor : cfg -> symbol -> bool
 val same_element : symbol -> symbol list -> bool
 val exit_intersection : symbol list -> symbol list -> bool
 val is_LL1 : cfg -> bool
+val factor_check : production -> symbol -> symbol list list
+val find_factor : symbol list list -> symbol list
