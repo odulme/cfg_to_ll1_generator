@@ -53,10 +53,21 @@ let rec product a b =
   | h::t -> union (product_help h b) (product t b)
   | [] -> []
 
-let rec cat x a =
+let rec cat a lst =
+  List.map (fun  l  ->  l @ a ) lst ;;
+
+let rec illness_cat x a =
   match a with
   | [] -> []
-  | h::t -> (x,h)::(cat x t)
+  | h::t -> (x,h)::(illness_cat x t)
+  (* match a with
+  | [] -> []
+  (* | h::t -> (h :: x)::(cat x t) *)
+  | h :: t ->(
+    match h with
+    | head :: tail -> (head :: x) :: (cat x t)
+    | [] -> []
+      ) *)
 
 let rec elem_find a =
   match a with

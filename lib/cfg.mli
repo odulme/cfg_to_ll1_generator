@@ -16,3 +16,11 @@ val left_factor : cfg -> symbol -> bool
 val same_element : symbol -> symbol list -> bool
 val exit_intersection : symbol list -> symbol list -> bool
 val is_LL1 : cfg -> bool
+val factor_check : production -> symbol -> symbol list list
+val find_factor : symbol list list -> symbol list
+val dirct_left_recursion : cfg -> symbol -> bool
+val get_rhs : symbol list list -> symbol -> symbol list list
+val get_lhs : symbol list list -> symbol -> symbol list list
+val symbol_to_string : symbol -> string
+val drop : symbol -> production -> production -> production
+val get_lhs_rhs : cfg -> symbol -> (symbol * symbol list) list
