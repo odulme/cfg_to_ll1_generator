@@ -143,11 +143,6 @@ let rec factor_helper (productions : production) (nonterminal : symbol) :
       else factor_helper tail nonterminal
   | [] -> []
 
-(* let rec elem_find a =
-    match a with
-    | h :: t -> (List.mem h t) || elem_find t
-    | [] -> false *)
-
 let left_factor (cfg : cfg) (nonterminal : symbol) : bool =
   let _, _, _, prods = cfg in
   let symbol_list = factor_helper prods nonterminal in
@@ -190,7 +185,6 @@ let is_LL1 (cfg : cfg) : bool =
   ) in
   is_LL1_helper prods
 
-(* let _, _, _, prods = cfg  *)
 
 let rec factor_check (prods : production)(nonterminal : symbol) : symbol list list = 
   match prods with
