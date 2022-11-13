@@ -9,22 +9,6 @@ type symbol =
 type production = (symbol * symbol list) list
 type cfg = symbol list * symbol list * symbol * production
 
-(* let rec elem x a =
-     match a with
-     | h::t -> (h = x) || (elem x t)
-     | [] -> false
-
-   let rec insert x a =
-   if not (elem x a) then x::a else a
-
-   let rec union a b =
-   match a with
-   | h::t -> insert h (union t b)
-   | [] ->
-     (match b with
-       | h::t -> insert h (union [] t)
-       | [] -> []) *)
-
 let cfg1 =
   ( [ N "E"; N "E'"; N "T"; N "T'"; N "F" ],
     [ T "+"; T "*"; T "("; T ")"; T "id"; Epsilon ],
@@ -39,6 +23,19 @@ let cfg1 =
       (N "F", [ T "("; N "E"; T ")" ]);
       (N "F", [ T "id" ]);
     ] )
+let cfg2 = (
+  [N "X"; N "Y"; N "Z"],
+  [T "a"; T "c"; T "d"],
+  N "X",
+  [
+  (N "X", [N "Y"]);
+  (N "X", [T "a"]);
+  (N "Y", [T "c"]);
+  (N "Y", []);
+  (N "Z", [T "d"]);
+  (N "Z", [T "d"]);
+  (N "Z", [T "X"; N "Y"; T "Z"])
+  ])
 
 let rec first_helper (productions : production) (nonterminal : symbol) :
     symbol list =
@@ -154,3 +151,40 @@ let left_factor (cfg : cfg) (nonterminal : symbol) : bool =
   let _, _, _, prods = cfg in
   let symbol_list = factor_helper prods nonterminal in
   elem_find symbol_list
+
+let rec same_element (symbol : symbol) (select : symbol list) : bool =
+  match select with 
+  | [] -> false
+  | h :: t -> (
+    if symbol = h then true
+    else same_element symbol t
+  )
+let rec exit_intersection (select1 : symbol list) (select2 : symbol list) : bool =
+  match select1 with 
+  | [] -> false
+  | h1 :: t1 ->(
+    match select2 with 
+    | [] -> false
+    | h2 :: _ -> if same_element h1 select2 then true
+    else exit_intersection t1 select2
+  )
+
+
+let is_LL1 (cfg : cfg) : bool =
+  let _, _, _, prods = cfg in 
+  let rec find_same_element (h: symbol * symbol list) (t : (symbol*symbol list)list) : symbol*symbol list =
+    match t with 
+    | [] -> (N "",[])
+    | head :: tail -> (
+      if fst h = fst head then head
+      else find_same_element h tail
+    ) in
+  let rec is_LL1_helper (prod : production) : bool = 
+  match prod with 
+  | [] -> true
+  | h :: t -> (
+    let left_same = find_same_element h t in 
+    if (exit_intersection (select cfg h) (select cfg left_same)) then false
+    else is_LL1_helper  t
+  ) in
+  is_LL1_helper prods
