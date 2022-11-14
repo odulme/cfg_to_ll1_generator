@@ -262,3 +262,43 @@ let get_lhs_rhs(cfg : cfg)(nonterminal : symbol) : (symbol * symbol list) list =
   let lhs_with_new =  super_cat ([new_nont]) (lst_lhs) in 
   let new_prods = drop nonterminal prods prods in 
   union new_prods (union (illness_cat (new_nont) (rhs_with_new) ) (illness_cat (nonterminal) (lhs_with_new)))
+
+let rec is_left_dirct_recursion_helper (cfg : cfg)(n_symbol : symbol list) : bool =  
+  match n_symbol with
+  | head :: tail ->
+   (dirct_left_recursion cfg head) || is_left_dirct_recursion_helper cfg tail
+  | [] -> false
+
+let is_left_dirct_recursion (cfg : cfg) : bool =
+  let n_symbol , _, _, prods = cfg in 
+  is_left_dirct_recursion_helper cfg n_symbol
+
+let rec eliminate_helper (cfg : cfg)(n_symbol : symbol list)(prods : production) : (symbol * symbol list) list=
+ match n_symbol with
+ | head :: tail -> (
+  if dirct_left_recursion cfg head then
+    let prods = get_lhs_rhs cfg head in 
+    eliminate_helper cfg tail prods
+  else
+    eliminate_helper cfg tail prods
+ )
+ | [] -> prods
+
+let rec eliminate_n_symbol (cfg : cfg)(n_symbol : symbol list)(new_n_symbol : symbol list) : symbol list =
+  match n_symbol with
+  | head :: tail ->(
+    if dirct_left_recursion cfg head then
+      let str = symbol_to_string head in 
+      let new_str = (N (str ^ "'")) in
+      let new_n_symbol = new_str :: n_symbol in 
+      eliminate_n_symbol cfg tail new_n_symbol
+    else 
+      eliminate_n_symbol cfg tail new_n_symbol
+  )
+  | [] -> new_n_symbol
+
+let eliminate_direct_left_recursion(cfg : cfg) : cfg =
+ let n_symbol , t_symbol, symbol, prods = cfg in  
+ let new_prods = eliminate_helper cfg n_symbol prods in 
+ let new_n_symbol = eliminate_n_symbol cfg n_symbol n_symbol in 
+ new_n_symbol , t_symbol , symbol ,new_prods
