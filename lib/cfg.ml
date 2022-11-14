@@ -1,4 +1,6 @@
 open Sets
+open Utils
+
 type symbol =
   | T of string (* terminal symbol *)
   | N of string (* nonterminal symbol *)
@@ -7,6 +9,7 @@ type symbol =
 
 type production = (symbol * symbol list) list
 type cfg = symbol list * symbol list * symbol * production
+type occur = symbol * int
 
 let cfg1 =
   ( [ N "E"; N "E'"; N "T"; N "T'"; N "F" ],
@@ -27,12 +30,13 @@ let cfg2 = (
   [T "a"; T "c"; T "d"],
   N "X",
   [
+  (N "X", [N "X" ; T "c" ; T "+"]);
+  (N "X", [N "X" ; T "c"]);
   (N "X", [N "Y"]);
-  (N "X", [T "a"]);
   (N "Y", [T "c"]);
-  (N "Y", []);
-  (N "Z", [T "d"]);
-  (N "Z", [T "d"]);
+  (N "Y", [Epsilon]);
+  (N "Z", [N "Y" ;]);
+  (N "Z", [T "d"; N "Y"]);
   (N "Z", [T "X"; N "Y"; T "Z"])
   ])
 
@@ -98,6 +102,7 @@ let rec follow (cfg : cfg) (nont : symbol) : symbol list =
   follow_helper prods nont cfg
 
 let nepsilon x = x != Epsilon
+let nemptylst x = x != []
 
 let rec filter p = function
   | [] -> []
@@ -141,12 +146,7 @@ let rec factor_helper (productions : production) (nonterminal : symbol) :
       else factor_helper tail nonterminal
   | [] -> []
 
-(* let rec elem_find a =
-    match a with
-    | h :: t -> (List.mem h t) || elem_find t
-    | [] -> false *)
-
-let left_factor (cfg : cfg) (nonterminal : symbol) : bool =
+let is_left_factor (cfg : cfg) (nonterminal : symbol) : bool =
   let _, _, _, prods = cfg in
   let symbol_list = factor_helper prods nonterminal in
   elem_find symbol_list
@@ -286,3 +286,222 @@ let parse (lst : symbol list) (cfg : cfg) : bool =
   | h :: t -> sub_parse cfg lst prods h start_nonterminal
   | [] -> false
   
+let rec factor_check (prods : production)(nonterminal : symbol) : symbol list list = 
+  match prods with
+  | head :: tail ->
+    let cont_head , symbol_list = head in 
+    if cont_head = nonterminal then
+      symbol_list :: factor_check tail nonterminal
+    else
+      factor_check tail nonterminal
+  | [] -> []
+
+let rec find_factor (list : symbol list list) : symbol list =
+  match list with
+  | head :: tail ->(
+    match head with
+    | h :: t -> 
+       h :: find_factor tail
+    | [] -> [])
+  | [] -> []
+
+let dirct_left_recursion (cfg : cfg)(nonterminal : symbol) : bool =
+  let  _, _, _, prods = cfg in 
+  let lst = factor_check prods nonterminal in 
+  List.mem nonterminal (find_factor lst)
+
+let rec get_rhs (lst : symbol list list)(nonterminal : symbol) : symbol list list =
+  match lst with
+  | head :: tail -> (
+    if List.mem nonterminal head then
+      match head with
+      | h :: t -> 
+       t :: get_rhs tail nonterminal
+      | [] -> []
+    else
+      get_rhs tail nonterminal
+  )
+  | [] -> []
+
+let rec get_lhs (lst : symbol list list)(nonterminal : symbol) : symbol list list =
+  match lst with
+  | head :: tail -> (
+    if List.mem nonterminal head then
+      get_lhs tail nonterminal
+    else
+      head :: get_lhs tail nonterminal
+  )
+  | [] -> []
+
+let rec symbol_to_string (symbol :symbol) : string =
+  match symbol with
+  | T str -> str
+  | N str -> str
+  | Epsilon -> "e"
+  | End -> "#"
+
+let rec drop (symbol : symbol)(productions : production)(new_prods : production) : production =
+  match productions with
+  | head :: tail -> 
+    let nont_head , symbol_list = head in 
+    if nont_head = symbol then
+     let new_prods = remove head productions in 
+      drop symbol new_prods new_prods
+    else
+     drop symbol tail new_prods
+  | [] -> new_prods
+
+let get_lhs_rhs(cfg : cfg)(nonterminal : symbol) : (symbol * symbol list) list =
+  let  _, _, _, prods = cfg  in
+  let str = symbol_to_string nonterminal in 
+  let new_nont = (N (str ^ "'")) in  
+  let lst = factor_check prods nonterminal in 
+  let lst_rhs = get_rhs lst nonterminal in
+  let lst_lhs = get_lhs lst nonterminal in
+  let rhs_with_new = super_cat ([new_nont]) (lst_rhs)  in 
+  let lhs_with_new =  super_cat ([new_nont]) (lst_lhs) in 
+  let new_prods = drop nonterminal prods prods in 
+  union new_prods (union (illness_cat (new_nont) (rhs_with_new) ) (illness_cat (nonterminal) (lhs_with_new)))
+
+let rec is_left_dirct_recursion_helper (cfg : cfg)(n_symbol : symbol list) : bool =  
+  match n_symbol with
+  | head :: tail ->
+   (dirct_left_recursion cfg head) || is_left_dirct_recursion_helper cfg tail
+  | [] -> false
+
+let is_left_dirct_recursion (cfg : cfg) : bool =
+  let n_symbol , _, _, prods = cfg in 
+  is_left_dirct_recursion_helper cfg n_symbol
+
+let rec eliminate_helper (cfg : cfg)(n_symbol : symbol list)(prods : production) : (symbol * symbol list) list=
+ match n_symbol with
+ | head :: tail -> (
+  if dirct_left_recursion cfg head then
+    let prods = get_lhs_rhs cfg head in 
+    eliminate_helper cfg tail prods
+  else
+    eliminate_helper cfg tail prods
+ )
+ | [] -> prods
+
+let rec eliminate_n_symbol (cfg : cfg)(n_symbol : symbol list)(new_n_symbol : symbol list) : symbol list =
+  match n_symbol with
+  | head :: tail ->(
+    if dirct_left_recursion cfg head then
+      let str = symbol_to_string head in 
+      let new_str = (N (str ^ "'")) in
+      let new_n_symbol = new_str :: n_symbol in 
+      eliminate_n_symbol cfg tail new_n_symbol
+    else 
+      eliminate_n_symbol cfg tail new_n_symbol
+  )
+  | [] -> new_n_symbol
+
+let eliminate_direct_left_recursion(cfg : cfg) : cfg =
+ let n_symbol , t_symbol, symbol, prods = cfg in  
+ let new_prods = eliminate_helper cfg n_symbol prods in 
+ let new_n_symbol = eliminate_n_symbol cfg n_symbol n_symbol in 
+ new_n_symbol , t_symbol , symbol ,new_prods
+
+let symbol_map (symbol : symbol) (prods : symbol * symbol list) =
+  let lhs, rhs = prods in
+  if lhs = symbol then rhs else []
+
+let rec concat_prods (symbol : symbol) (prod_list : production) =
+  let tmp_list = 
+  match prod_list with
+  | [] -> []
+  | h :: t -> symbol_map symbol h :: concat_prods symbol t
+  in List.filter nemptylst tmp_list
+
+let get_all_head_occ lst : occur list =
+  let tmp = List.map List.hd lst in
+  assoc_list tmp
+
+let get_left_factor (lst : occur list) =
+  let tmp_list =
+    let check_factor (occ_map : occur) =
+      let symbol, occ = occ_map in
+      if occ > 1 then [ symbol ] else []
+    in
+    List.map check_factor lst
+  in
+  List.fold_left ( @ ) [] tmp_list
+
+let get_remainder (symbol:symbol) (prods: symbol list list) = 
+  let get_remiander_helper lst = 
+    match lst with
+    | [] -> []
+    | h::t -> 
+      if h = symbol && t != [] then t
+      else if h = symbol && t = [] then [Epsilon]
+      else if  h = symbol && t = [Epsilon] then []
+      else []
+  in
+   (symbol,List.filter nemptylst (List.map get_remiander_helper prods))
+
+let rec get_left_factor_list_check (cfg : cfg)(n_symbol : symbol list)(prods : production)(concat : symbol list list) : symbol list list =
+ match n_symbol with
+ | head :: tail -> 
+  if is_left_factor cfg head then
+    let concat = concat_prods head prods in 
+    get_left_factor_list_check cfg tail prods concat
+  else
+    get_left_factor_list_check cfg tail prods concat
+ | [] -> concat
+
+let rec drop_first (symbol : symbol)(nonterminal : symbol)(productions : production)(new_prods : production) : production =
+  match productions with
+  | head :: tail  ->(
+  let  nont_head , symbol_list = head in
+  match symbol_list with
+   | h :: _ ->
+    if h = symbol && nont_head = nonterminal then
+      let  new_prods = remove head new_prods in 
+      drop_first nonterminal symbol new_prods new_prods
+    else 
+      drop_first nonterminal symbol tail new_prods
+   | [] -> []
+  )
+  |[] -> new_prods
+
+let rec get_note (cfg : cfg)(n_symbol : symbol list) : symbol list =
+  match n_symbol with
+  | head :: tail -> (
+    if is_left_factor cfg head then
+      head :: get_note cfg tail
+    else 
+      get_note cfg tail
+   )
+  | [] -> []
+
+let rec left_factor_concat (cfg : cfg) :  cfg =
+  let n_symbol , t_symbol, symbol, prods = cfg in
+  let concat = get_left_factor_list_check cfg n_symbol prods [[]] in
+  let nonte =  get_note cfg n_symbol in 
+  let first_list = get_all_head_occ concat in 
+  let first_factor = get_left_factor first_list in 
+  let remainder =get_remainder (List.hd(first_factor)) concat in 
+  let new_productions = drop_first (List.hd(first_factor)) (List.hd(nonte)) prods prods in 
+  let str_symbol , symbol_list_list = remainder in
+  let new_str_symbol =  (N (symbol_to_string(List.hd(nonte)) ^ "'")) in 
+  let new_nont_prods =List.hd(nonte) ,first_factor @ [new_str_symbol] in  
+  let add_prods = new_nont_prods :: ( cat new_str_symbol symbol_list_list) in 
+  let new_n_symbol = n_symbol @ [new_str_symbol] in  
+  let final_prods = union new_productions add_prods in 
+  new_n_symbol , t_symbol , symbol , final_prods
+
+let rec left_factor_judge (cfg : cfg)(n_symbol : symbol list) : cfg =
+  match n_symbol with
+  | head :: tail ->
+    if is_left_factor cfg head then
+      let cfg = left_factor_concat cfg in 
+      let new_symbol ,_ ,_ ,_ = cfg in 
+      left_factor_judge cfg new_symbol
+    else
+      left_factor_judge cfg tail
+  | [] -> cfg
+
+let left_factor_main (cfg : cfg) : cfg = 
+  let n_symbol , t_symbol, symbol, prods = cfg in 
+  left_factor_judge cfg n_symbol

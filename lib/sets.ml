@@ -1,6 +1,6 @@
 
 
- let rec elem x a =
+let rec elem x a =
   match a with
   | h::t -> (h = x) || (elem x t)
   | [] -> false
@@ -54,9 +54,17 @@ let rec product a b =
   | [] -> []
 
 let rec cat x a =
+    match a with
+    | [] -> []
+    | h::t -> (x,h)::(cat x t)
+
+let rec super_cat a lst =
+  List.map (fun  l  ->  l @ a ) lst ;;
+
+let rec illness_cat x a =
   match a with
   | [] -> []
-  | h::t -> (x,h)::(cat x t)
+  | h::t -> (x,h)::(illness_cat x t)
 
 let rec elem_find a =
   match a with
