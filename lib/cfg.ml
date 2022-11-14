@@ -345,7 +345,7 @@ let rec drop (symbol : symbol)(productions : production)(new_prods : production)
   | head :: tail -> 
     let nont_head , symbol_list = head in 
     if nont_head = symbol then
-     let new_prods = remove head productions in 
+     let new_prods = remove head new_prods in 
       drop symbol new_prods new_prods
     else
      drop symbol tail new_prods
@@ -354,14 +354,14 @@ let rec drop (symbol : symbol)(productions : production)(new_prods : production)
 let get_lhs_rhs(cfg : cfg)(nonterminal : symbol) : (symbol * symbol list) list =
   let  _, _, _, prods = cfg  in
   let str = symbol_to_string nonterminal in 
-  let new_nont = (N (str ^ "'")) in  
+  let new_nont = (N (str ^ "_")) in  
   let lst = factor_check prods nonterminal in 
   let lst_rhs = get_rhs lst nonterminal in
   let lst_lhs = get_lhs lst nonterminal in
   let rhs_with_new = super_cat ([new_nont]) (lst_rhs)  in 
   let lhs_with_new =  super_cat ([new_nont]) (lst_lhs) in 
   let new_prods = drop nonterminal prods prods in 
-  union new_prods (union (illness_cat (new_nont) (rhs_with_new) ) (illness_cat (nonterminal) (lhs_with_new)))
+  union (new_prods) (union (illness_cat (new_nont) (rhs_with_new) ) (illness_cat (nonterminal) (lhs_with_new)))
 
 let rec is_left_dirct_recursion_helper (cfg : cfg)(n_symbol : symbol list) : bool =  
   match n_symbol with
@@ -377,7 +377,9 @@ let rec eliminate_helper (cfg : cfg)(n_symbol : symbol list)(prods : production)
  match n_symbol with
  | head :: tail -> (
   if dirct_left_recursion cfg head then
-    let prods = get_lhs_rhs cfg head in 
+    let prods = get_lhs_rhs cfg head in
+    let nonterminal , terminal , start  , productions = cfg in 
+    let cfg = nonterminal , terminal , start , prods in 
     eliminate_helper cfg tail prods
   else
     eliminate_helper cfg tail prods
@@ -389,7 +391,7 @@ let rec eliminate_n_symbol (cfg : cfg)(n_symbol : symbol list)(new_n_symbol : sy
   | head :: tail ->(
     if dirct_left_recursion cfg head then
       let str = symbol_to_string head in 
-      let new_str = (N (str ^ "'")) in
+      let new_str = (N (str ^ "_")) in
       let new_n_symbol = new_str :: n_symbol in 
       eliminate_n_symbol cfg tail new_n_symbol
     else 

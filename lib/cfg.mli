@@ -6,7 +6,7 @@ val cfg1 : symbol list * symbol list * symbol * (symbol * symbol list) list
 val cfg2 : symbol list * symbol list * symbol * (symbol * symbol list) list
 val first_helper : production -> symbol -> symbol list
 val first : cfg -> symbol -> symbol list
-val exit_epsilon : cfg -> symbol -> bool
+val exist_epsilon : cfg -> symbol -> bool
 val follow : cfg -> symbol -> symbol list
 val nepsilon : symbol -> bool
 val nemptylst : 'a list -> bool
@@ -16,7 +16,7 @@ val select : cfg -> symbol * symbol list -> symbol list
 val factor_helper : production -> symbol -> symbol list
 val is_left_factor : cfg -> symbol -> bool
 val same_element : symbol -> symbol list -> bool
-val exit_intersection : symbol list -> symbol list -> bool
+val exist_intersection : symbol list -> symbol list -> bool
 val find_same_left :
   symbol * symbol list -> (symbol * symbol list) list -> symbol * symbol list
 val is_LL1 : cfg -> bool
