@@ -24,3 +24,9 @@ val get_lhs : symbol list list -> symbol -> symbol list list
 val symbol_to_string : symbol -> string
 val drop : symbol -> production -> production -> production
 val get_lhs_rhs : cfg -> symbol -> (symbol * symbol list) list
+val is_left_dirct_recursion_helper : cfg -> symbol list -> bool
+val is_left_dirct_recursion : cfg -> bool
+val eliminate_helper :
+  cfg -> symbol list -> production -> (symbol * symbol list) list
+val eliminate_n_symbol : cfg -> symbol list -> symbol list -> symbol list
+val eliminate_direct_left_recursion : cfg -> cfg
