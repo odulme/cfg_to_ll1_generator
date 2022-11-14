@@ -1,5 +1,4 @@
 open Sets
-
 type symbol =
   | T of string (* terminal symbol *)
   | N of string (* nonterminal symbol *)
@@ -167,24 +166,123 @@ let rec exit_intersection (select1 : symbol list) (select2 : symbol list) : bool
     | [] -> false
     | h2 :: _ -> if same_element h1 select2 then true
     else exit_intersection t1 select2
-  )
-
+)
+let rec find_same_left (h: symbol * symbol list) (t : (symbol*symbol list)list) : symbol*symbol list =
+  let compare (s1 : symbol ) (s2 : symbol) : bool=
+    if s1 = s2 then true
+    else false in
+  match t with 
+  | [] -> (N "",[])
+  | head :: tail -> (
+    if fst h = fst head && not(List.equal (compare) (snd h) (snd head)) then head
+    else find_same_left h tail
+  ) 
 
 let is_LL1 (cfg : cfg) : bool =
   let _, _, _, prods = cfg in 
-  let rec find_same_element (h: symbol * symbol list) (t : (symbol*symbol list)list) : symbol*symbol list =
-    match t with 
-    | [] -> (N "",[])
-    | head :: tail -> (
-      if fst h = fst head then head
-      else find_same_element h tail
-    ) in
   let rec is_LL1_helper (prod : production) : bool = 
   match prod with 
   | [] -> true
   | h :: t -> (
-    let left_same = find_same_element h t in 
+    let left_same = find_same_left h t in 
     if (exit_intersection (select cfg h) (select cfg left_same)) then false
     else is_LL1_helper  t
   ) in
   is_LL1_helper prods
+
+
+
+let rec find_next_nonterminal (prod : symbol *symbol list) : symbol list = 
+  match snd prod with 
+  | [] -> []
+  | h :: t -> (
+    match h with 
+    | T _ -> find_next_nonterminal ((fst prod) , t)
+    | N _ -> h :: find_next_nonterminal ((fst prod) , t)
+    | _ -> find_next_nonterminal ((fst prod) , t)
+  )
+
+let rec get_next_prod (prods : production) (symbol_nonterminal :symbol) : symbol *symbol list=
+  match prods with 
+  | [] -> (N "",[])
+  | h :: t -> (
+    if fst h = symbol_nonterminal then h
+    else get_next_prod t symbol_nonterminal
+  )
+let cut = function
+| [] -> [] 
+| _::t -> t
+let get_head (lst : symbol * symbol list) : symbol = 
+  match snd lst with
+  | [] ->T ""
+  | h :: t ->h
+
+  let rec sub_parse (cfg : cfg )(symbol_list : symbol list) (prods : production) (prod : symbol *symbol list) (symbol_nonterminal :symbol) : bool = 
+  let _, nonts, _, _ = cfg in
+  let rec next_parse (cfg : cfg )(symbol_list : symbol list) (prods : production) (prod : symbol *symbol list)(nonterminal : symbol list) = 
+    match nonterminal with 
+    | [] -> false
+    | h :: t -> ( 
+      let next_prod = get_next_prod prods h in
+      sub_parse cfg symbol_list prods next_prod h || next_parse cfg symbol_list prods prod t 
+    ) in 
+  match symbol_list with
+  | [] -> false
+  | head :: tail -> (
+        let same_left = find_same_left prod prods in 
+        if snd same_left = [] then (
+          let select1 = select cfg prod in 
+          if elem head select1 && head != End then (
+            let head_symbol = get_head prod in
+            if elem head_symbol nonts then (
+              let next_noterminal =  find_next_nonterminal prod in 
+             next_parse cfg tail prods prod next_noterminal
+            )
+            else(
+            let next_noterminal = cut (find_next_nonterminal prod) in 
+             next_parse cfg tail prods prod next_noterminal
+            )
+          )
+          else if elem head select1 && head = End then true
+          else false
+        )
+        else(
+          let select1 = select cfg prod in
+          let select2 = select cfg same_left in
+          if elem head select1 && head != End then (
+            let head_symbol = get_head prod in
+            if elem head_symbol nonts then (
+              let next_noterminal =  find_next_nonterminal prod in 
+             next_parse cfg tail prods prod next_noterminal
+            )
+            else(
+            let next_noterminal = cut (find_next_nonterminal prod) in 
+             next_parse cfg tail prods prod next_noterminal
+            )
+          )
+          else if elem head select2 && head != End then (
+            let head_symbol = get_head prod in
+            if elem head_symbol nonts then (
+              let next_noterminal =  find_next_nonterminal prod in 
+             next_parse cfg tail prods same_left next_noterminal
+            )
+            else(
+            let next_noterminal = cut (find_next_nonterminal prod) in 
+             next_parse cfg tail prods same_left next_noterminal
+            )
+          )
+          else if elem head select1 && head = End then true
+          else if elem head select2 && head = End then true
+          else false
+        )
+      ) 
+
+  
+
+
+let parse (lst : symbol list) (cfg : cfg) : bool = 
+  let _, _, start_nonterminal, prods = cfg in 
+  match prods with
+  | h :: t -> sub_parse cfg lst prods h start_nonterminal
+  | [] -> false
+  
