@@ -20,7 +20,6 @@ val exit_intersection : symbol list -> symbol list -> bool
 val find_same_left :
   symbol * symbol list -> (symbol * symbol list) list -> symbol * symbol list
 val is_LL1 : cfg -> bool
-<<<<<<< HEAD
 val find_next_nonterminal : symbol * symbol list -> symbol list
 val get_next_prod : production -> symbol -> symbol * symbol list
 val cut : 'a list -> 'a list
@@ -28,7 +27,6 @@ val get_head : symbol * symbol list -> symbol
 val sub_parse :
   cfg -> symbol list -> production -> symbol * symbol list -> symbol -> bool
 val parse : symbol list -> cfg -> bool
-=======
 val factor_check : production -> symbol -> symbol list list
 val find_factor : symbol list list -> symbol list
 val dirct_left_recursion : cfg -> symbol -> bool
@@ -55,4 +53,3 @@ val get_note : cfg -> symbol list -> symbol list
 val left_factor_concat : cfg -> cfg
 val left_factor_judge : cfg -> symbol list -> cfg
 val left_factor_main : cfg -> cfg
->>>>>>> a27b09b954187d6ecd3684a1b888023ad9f3d103
