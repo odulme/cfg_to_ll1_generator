@@ -61,7 +61,7 @@ let first (cfg : cfg) (nont : symbol) : symbol list =
   let _, _, _, prods = cfg in
   first_helper prods nont
 
-let rec exit_epsilon (cfg : cfg) (nont : symbol) : bool =
+let rec exist_epsilon (cfg : cfg) (nont : symbol) : bool =
   let first_list = first cfg nont in
   List.mem Epsilon first_list
 
@@ -81,7 +81,7 @@ let rec follow (cfg : cfg) (nont : symbol) : symbol list =
                   match next with
                   | T _ -> next :: lookahead t nonterminal tail cfg prod header
                   | N _ ->
-                      if exit_epsilon cfg next then
+                      if exist_epsilon cfg next then
                         union (follow cfg header) (first cfg next)
                       else first cfg next
                   | _ -> [])
@@ -119,13 +119,13 @@ let find_select (cfg : cfg) (prod : symbol * symbol list) =
         | Epsilon -> h :: []
         | _ -> [])
   in
-  let rec exit_epsilon (first_list : symbol list) : bool =
+  let rec exist_epsilon (first_list : symbol list) : bool =
     match first_list with
     | [] -> false
     | h :: t -> (
-        match h with Epsilon -> true | T _ -> exit_epsilon t | _ -> false)
+        match h with Epsilon -> true | T _ -> exist_epsilon t | _ -> false)
   in
-  if exit_epsilon first_alpha = false then first_alpha
+  if exist_epsilon first_alpha = false then first_alpha
   else
     let first_filter = filter nepsilon first_alpha in
     let follow_alpha = follow cfg (fst prod) in
@@ -158,14 +158,14 @@ let rec same_element (symbol : symbol) (select : symbol list) : bool =
     if symbol = h then true
     else same_element symbol t
   )
-let rec exit_intersection (select1 : symbol list) (select2 : symbol list) : bool =
+let rec exist_intersection (select1 : symbol list) (select2 : symbol list) : bool =
   match select1 with 
   | [] -> false
   | h1 :: t1 ->(
     match select2 with 
     | [] -> false
     | h2 :: _ -> if same_element h1 select2 then true
-    else exit_intersection t1 select2
+    else exist_intersection t1 select2
 )
 let rec find_same_left (h: symbol * symbol list) (t : (symbol*symbol list)list) : symbol*symbol list =
   let compare (s1 : symbol ) (s2 : symbol) : bool=
@@ -185,7 +185,7 @@ let is_LL1 (cfg : cfg) : bool =
   | [] -> true
   | h :: t -> (
     let left_same = find_same_left h t in 
-    if (exit_intersection (select cfg h) (select cfg left_same)) then false
+    if (exist_intersection (select cfg h) (select cfg left_same)) then false
     else is_LL1_helper  t
   ) in
   is_LL1_helper prods
