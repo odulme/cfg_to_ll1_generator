@@ -93,3 +93,53 @@ follow cfg1 (N "E") ;;
 select cfg1 (N "E", [ N "T"; N "E'" ]) ;;
 - : symbol list = [T "("; T "id"]
 ```
+## Part 2 : Functions
+### is_LL1
+输入一个`cfg` , 返回一个布尔值，判断文法是否为LL(1)文法   
+例如：
+```ocaml
+is_LL1 cfg2 ;;
+- : bool = false
+```
+
+### is_left_dirct_recursion
+输入一个`cfg` ， 返回一个布尔值，判断文法是否包含直接左递归   
+例如：
+```ocaml
+is_left_dirct_recursion cfg2 ;;
+- : bool = true
+```
+### eliminate_direct_left_recursion
+输入一个`cfg` ， 返回一个新的`cfg` ， 消除直接左递归  
+例如：   
+```ocaml
+eliminate_direct_left_recursion cfg2 ;;
+- : cfg =
+([N "X_"; N "X"; N "Y"; N "Z"], [T "a"; T "c"; T "d"], N "X",
+ [(N "Y", [T "c"]); (N "Y", [Epsilon]); (N "Z", [N "Y"]);
+  (N "Z", [T "d"; N "Y"]); (N "Z", [T "X"; N "Y"; T "Z"]);
+  (N "X_", [T "c"; T "+"; N "X_"]); (N "X_", [T "c"; N "X_"]);
+  (N "X", [N "Y"; N "X_"])])
+```
+
+### is_factor
+输入一个`cfg` , 返回一个布尔值 ， 判断一个`cfg`是否含有左公因子  
+
+例如：
+```ocaml
+is_factor cfg2 ;;
+- : bool = true
+```
+
+### eliminate_left_factor
+输入一个`cfg` ，返回一个新的`cfg` , 消除左公因子
+例如：
+```ocaml
+eliminate_left_factor cfg2 ;;
+- : cfg =
+([N "X"; N "Y"; N "Z"; N "X'"; N "X''"], [T "a"; T "c"; T "d"], N "X",
+ [(N "X", [N "Y"]); (N "Y", [T "c"]); (N "Y", [Epsilon]); (N "Z", [N "Y"]);
+  (N "Z", [T "d"; N "Y"]); (N "Z", [T "X"; N "Y"; T "Z"]);
+  (N "X", [N "X"; N "X'"]); (N "X'", [T "c"; N "X''"]); (N "X''", [T "+"]);
+  (N "X''", [Epsilon])])
+```
