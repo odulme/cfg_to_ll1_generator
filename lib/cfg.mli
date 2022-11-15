@@ -2,6 +2,7 @@ type symbol = T of string | N of string | Epsilon | End
 type production = (symbol * symbol list) list
 type cfg = symbol list * symbol list * symbol * production
 type occur = symbol * int
+val fresh : unit -> int
 val cfg1 : symbol list * symbol list * symbol * (symbol * symbol list) list
 val cfg2 : symbol list * symbol list * symbol * (symbol * symbol list) list
 val first_helper : production -> symbol -> symbol list
@@ -52,4 +53,5 @@ val drop_first : symbol -> symbol -> production -> production -> production
 val get_note : cfg -> symbol list -> symbol list
 val left_factor_concat : cfg -> cfg
 val left_factor_judge : cfg -> symbol list -> cfg
-val left_factor_main : cfg -> cfg
+val is_factor : cfg -> bool
+val eliminate_left_factor : cfg -> cfg

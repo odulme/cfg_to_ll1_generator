@@ -11,6 +11,12 @@ type production = (symbol * symbol list) list
 type cfg = symbol list * symbol list * symbol * production
 type occur = symbol * int
 
+let fresh =
+  let cntr = ref 0 in
+  fun () ->
+    cntr := !cntr + 1 ;
+    !cntr
+
 let cfg1 =
   ( [ N "E"; N "E'"; N "T"; N "T'"; N "F" ],
     [ T "+"; T "*"; T "("; T ")"; T "id"; Epsilon ],
@@ -146,7 +152,7 @@ let rec factor_helper (productions : production) (nonterminal : symbol) :
       else factor_helper tail nonterminal
   | [] -> []
 
-let is_left_factor (cfg : cfg) (nonterminal : symbol) : bool =
+let rec is_left_factor (cfg : cfg) (nonterminal : symbol) : bool =
   let _, _, _, prods = cfg in
   let symbol_list = factor_helper prods nonterminal in
   elem_find symbol_list
@@ -486,7 +492,7 @@ let rec left_factor_concat (cfg : cfg) :  cfg =
   let remainder =get_remainder (List.hd(first_factor)) concat in 
   let new_productions = drop_first (List.hd(first_factor)) (List.hd(nonte)) prods prods in 
   let str_symbol , symbol_list_list = remainder in
-  let new_str_symbol =  (N (symbol_to_string(List.hd(nonte)) ^ "'")) in 
+  let new_str_symbol =  (N (symbol_to_string(List.hd(nonte)) ^ "'" )) in 
   let new_nont_prods =List.hd(nonte) ,first_factor @ [new_str_symbol] in  
   let add_prods = new_nont_prods :: ( cat new_str_symbol symbol_list_list) in 
   let new_n_symbol = n_symbol @ [new_str_symbol] in  
@@ -504,6 +510,16 @@ let rec left_factor_judge (cfg : cfg)(n_symbol : symbol list) : cfg =
       left_factor_judge cfg tail
   | [] -> cfg
 
-let left_factor_main (cfg : cfg) : cfg = 
+let rec is_factor (cfg : cfg) : bool = 
+  let n_symbol,t_symbol,start,prods  = cfg in
+  match n_symbol with
+  | head :: tail -> 
+    let cfg = tail , t_symbol , start , prods in   
+    (is_left_factor cfg head) || (is_factor cfg)
+  | [] -> false
+
+let eliminate_left_factor (cfg : cfg) : cfg = 
   let n_symbol , t_symbol, symbol, prods = cfg in 
   left_factor_judge cfg n_symbol
+
+  
