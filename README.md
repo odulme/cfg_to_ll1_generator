@@ -94,7 +94,7 @@ select cfg1 (N "E", [ N "T"; N "E'" ]) ;;
 - : symbol list = [T "("; T "id"]
 ```
 ## Part 2 : Functions
-### is_LL1
+### `is_LL1`
 输入一个`cfg` , 返回一个布尔值，判断文法是否为LL(1)文法   
 例如：
 ```ocaml
@@ -102,14 +102,14 @@ is_LL1 cfg2 ;;
 - : bool = false
 ```
 
-### is_left_dirct_recursion
+### `is_left_dirct_recursion`
 输入一个`cfg` ， 返回一个布尔值，判断文法是否包含直接左递归   
 例如：
 ```ocaml
 is_left_dirct_recursion cfg2 ;;
 - : bool = true
 ```
-### eliminate_direct_left_recursion
+### `eliminate_direct_left_recursion`
 输入一个`cfg` ， 返回一个新的`cfg` ， 消除直接左递归  
 例如：   
 ```ocaml
@@ -122,7 +122,7 @@ eliminate_direct_left_recursion cfg2 ;;
   (N "X", [N "Y"; N "X_"])])
 ```
 
-### is_factor
+### `is_factor`
 输入一个`cfg` , 返回一个布尔值 ， 判断一个`cfg`是否含有左公因子  
 
 例如：
@@ -131,8 +131,9 @@ is_factor cfg2 ;;
 - : bool = true
 ```
 
-### eliminate_left_factor
+### `eliminate_left_factor`
 输入一个`cfg` ，返回一个新的`cfg` , 消除左公因子
+    
 例如：
 ```ocaml
 eliminate_left_factor cfg2 ;;
