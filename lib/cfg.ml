@@ -56,9 +56,9 @@ let rec first_helper (productions : production) (nonterminal : symbol) :
         | [] -> []
         | h :: _ -> (
             match h with
-            | T _ -> h :: first_helper tail nonterminal
+            | T _ ->union [h] (first_helper tail nonterminal)
             | N _ -> first_helper tail h
-            | Epsilon -> Epsilon :: first_helper tail nonterminal
+            | Epsilon ->union [Epsilon] ( first_helper tail nonterminal)
             | _ -> [])
       else first_helper tail nonterminal
   | [] -> []
@@ -85,7 +85,7 @@ let rec follow (cfg : cfg) (nont : symbol) : symbol list =
               match t with
               | next :: _ -> (
                   match next with
-                  | T _ -> next :: lookahead t nonterminal tail cfg prod header
+                  | T _ ->union [next] (lookahead t nonterminal tail cfg prod header)
                   | N _ ->
                       if exist_epsilon cfg next then
                         union (follow cfg header) (first cfg next)
@@ -100,8 +100,7 @@ let rec follow (cfg : cfg) (nont : symbol) : symbol list =
     | head :: tail ->
         let nont_in_prod, symbol_list = head in
         if nont_in_prod = nonterminal then
-          End
-          :: lookahead symbol_list nonterminal tail cfg productions nont_in_prod
+         union [End] (lookahead symbol_list nonterminal tail cfg productions nont_in_prod)
         else lookahead symbol_list nonterminal tail cfg productions nont_in_prod
     | [] -> []
   in
