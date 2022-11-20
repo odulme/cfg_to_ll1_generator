@@ -5,6 +5,7 @@ type occur = symbol * int
 val fresh : unit -> int
 val cfg1 : symbol list * symbol list * symbol * (symbol * symbol list) list
 val cfg2 : symbol list * symbol list * symbol * (symbol * symbol list) list
+val cfg3 : symbol list * symbol list * symbol * (symbol * symbol list) list
 val first_helper : production -> symbol -> symbol list
 val first : cfg -> symbol -> symbol list
 val exist_epsilon : cfg -> symbol -> bool
@@ -54,4 +55,13 @@ val get_note : cfg -> symbol list -> symbol list
 val left_factor_concat : cfg -> cfg
 val left_factor_judge : cfg -> symbol list -> cfg
 val is_factor : cfg -> bool
+val match_common_list :
+  symbol -> symbol list -> symbol * symbol list -> production
+val find_common_factor_helper : production -> symbol -> production
+val find_common_factor : cfg -> production
+val match_nonte : cfg -> symbol -> symbol list
+val replace_nonterminal_helper : symbol list -> production -> production
+val replace_nonterminal : production -> cfg -> cfg
+val replace_cfg : cfg -> cfg
+val is_common_factor : cfg -> bool
 val eliminate_left_factor : cfg -> cfg

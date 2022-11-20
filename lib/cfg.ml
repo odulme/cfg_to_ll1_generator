@@ -31,20 +31,32 @@ let cfg1 =
       (N "F", [ T "("; N "E"; T ")" ]);
       (N "F", [ T "id" ]);
     ] )
-let cfg2 = (
-  [N "X"; N "Y"; N "Z"],
-  [T "a"; T "c"; T "d"],
+    let cfg2 = (
+      [N "X"; N "Y"; N "Z"],
+      [T "a"; T "c"; T "d"],
+      N "X",
+      [
+      (N "X", [N "X" ; T "c" ; T "+"]);
+      (N "X", [N "X" ; T "c"]);
+      (N "X", [N "Y"]);
+      (N "Y", [T "c"]);
+      (N "Y", [Epsilon]);
+      (N "Z", [N "Y" ;]);
+      (N "Z", [T "d"; N "Y"]);
+      (N "Z", [T "X"; N "Y"; T "Z"])
+      ])
+let cfg3 = (
+  [N "A"; N "B" ; N "C"],
+  [T "x"; T "y" ; T "z"],
   N "X",
   [
-  (N "X", [N "X" ; T "c" ; T "+"]);
-  (N "X", [N "X" ; T "c"]);
-  (N "X", [N "Y"]);
-  (N "Y", [T "c"]);
-  (N "Y", [Epsilon]);
-  (N "Z", [N "Y" ;]);
-  (N "Z", [T "d"; N "Y"]);
-  (N "Z", [T "X"; N "Y"; T "Z"])
-  ])
+    (N "A" , [N "B" ; T "y" ; T"z"]);
+    (N "A" , [T "x" ; T "y"]);
+    (N "A" , [T "z" ; N "C"]);
+    (N "B" , [T "x"]);
+    (N "C" , [T "y"]);
+  ]
+)
 
 let rec first_helper (productions : production) (nonterminal : symbol) :
     symbol list =
@@ -468,7 +480,7 @@ let rec drop_first (symbol : symbol)(nonterminal : symbol)(productions : product
       drop_first nonterminal symbol new_prods new_prods
     else 
       drop_first nonterminal symbol tail new_prods
-   | [] -> []
+   | [] -> new_prods
   )
   |[] -> new_prods
 
@@ -490,12 +502,13 @@ let rec left_factor_concat (cfg : cfg) :  cfg =
   let first_factor = get_left_factor first_list in 
   let remainder =get_remainder (List.hd(first_factor)) concat in 
   let new_productions = drop_first (List.hd(first_factor)) (List.hd(nonte)) prods prods in 
+  let final_productions = drop_first(List.hd(first_factor)) (List.hd(nonte)) new_productions new_productions in 
   let str_symbol , symbol_list_list = remainder in
   let new_str_symbol =  (N (symbol_to_string(List.hd(nonte)) ^ "'" )) in 
   let new_nont_prods =List.hd(nonte) ,first_factor @ [new_str_symbol] in  
   let add_prods = new_nont_prods :: ( cat new_str_symbol symbol_list_list) in 
   let new_n_symbol = n_symbol @ [new_str_symbol] in  
-  let final_prods = union new_productions add_prods in 
+  let final_prods = union final_productions add_prods in 
   new_n_symbol , t_symbol , symbol , final_prods
 
 let rec left_factor_judge (cfg : cfg)(n_symbol : symbol list) : cfg =
@@ -517,8 +530,113 @@ let rec is_factor (cfg : cfg) : bool =
     (is_left_factor cfg head) || (is_factor cfg)
   | [] -> false
 
-let eliminate_left_factor (cfg : cfg) : cfg = 
-  let n_symbol , t_symbol, symbol, prods = cfg in 
-  left_factor_judge cfg n_symbol
 
+let rec match_common_list (nonterminal : symbol)(symbol_list : symbol list)(head : symbol * symbol list) : production =
+  match symbol_list with
+  | h :: t -> (
+    match h with
+    | N _ ->(
+      if h = nonterminal then
+        []
+      else
+        [head]
+    )
+    |_ -> []
+  )
+  |[] -> []
+
+
+let rec find_common_factor_helper(prods : production)(nonterminal : symbol): production =
+  match prods with
+  | head :: tail ->( 
+    let head_nonte , symbol_list = head in 
+    if head_nonte = nonterminal then
+    union (match_common_list nonterminal symbol_list head) (find_common_factor_helper tail nonterminal)
+    else find_common_factor_helper tail nonterminal
+  )
+  | [] -> []
+
+let rec find_common_factor (cfg : cfg) : production = 
+  let n_symbol , t_symbol , start ,prods = cfg in
+  match  n_symbol with
+  | head :: tail ->
+    let cfg = tail, t_symbol , start , prods in 
+    union (find_common_factor_helper prods head)(find_common_factor cfg)
+  | [] -> []
+
+let rec match_nonte (cfg : cfg)(nonterminal : symbol) : symbol list = 
+  let n_symbol , t_symbol , start , prods = cfg in 
+  match prods with 
+  | head :: tail ->(
+    let head_nonte , symbol_list = head in 
+    let cfg = n_symbol , t_symbol , start , tail in 
+    if head_nonte = nonterminal then
+      union symbol_list (match_nonte cfg nonterminal)
+    else 
+      match_nonte cfg nonterminal
+  )
+  | [] -> []
+
+let rec replace_nonterminal_helper(symbol_list : symbol list)(prods : production) : production = 
+  match prods with
+  | head :: tail ->(
+    let head_nonte , new_symbol_list = head in 
+    match new_symbol_list with
+    | h :: t ->
+      let new_symbol_list = union symbol_list t in 
+       [head_nonte , new_symbol_list]
+    | [] -> []
+  )
+  | [] -> []
+
+
+let rec replace_nonterminal (prods : production) (cfg : cfg) : cfg =
+  let n_symbol , t_symbol , start , productions = cfg in 
+  match prods with
+  | head :: tail -> (
+    let head_nonte , symbol_list = head in 
+    match symbol_list with
+    | h :: _ -> (
+      let match_symbol_list = match_nonte cfg h in 
+      let new_prods = replace_nonterminal_helper (match_symbol_list)(prods) in
+      let new_productions = remove head productions in 
+      let final_productions = union new_prods new_productions in 
+      n_symbol,t_symbol,start,final_productions
+    )
+    | [] -> cfg
+  )
+  | [] -> cfg
+
+let rec replace_cfg (cfg : cfg) : cfg = 
+  let prods = find_common_factor cfg in 
+  replace_nonterminal prods cfg
+
+let rec is_common_factor (cfg : cfg) : bool =
+  let n_symbol , t_symbol , start , prods = cfg in 
+  match prods with
+  |head :: tail ->(
+    let head_nonte , symbol_list = head in
+    let cfg = n_symbol , t_symbol , start , tail  in 
+    match symbol_list with
+    | h :: _ ->(
+      match h with
+      | N _ ->  (
+        if h = head_nonte then 
+          is_common_factor cfg
+        else
+          true || is_common_factor cfg
+      )
+      | _ -> is_common_factor cfg
+    )
+    | [] -> is_common_factor cfg
+  )
+  | [] -> false
+
+let rec eliminate_left_factor (cfg : cfg) : cfg = 
+    let n_symbol , t_symbol, symbol, prods = cfg in
+    if is_common_factor cfg then
+      let cfg = replace_cfg cfg in 
+      eliminate_left_factor cfg
+    else 
+    left_factor_judge cfg n_symbol
   
